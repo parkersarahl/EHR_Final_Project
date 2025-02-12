@@ -1,3 +1,6 @@
-./articles/*
+#Supporting docs
+/articles
+*.txt
 
-/.txt
+#PyCache
+*.pyc
