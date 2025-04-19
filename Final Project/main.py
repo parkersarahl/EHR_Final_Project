@@ -105,7 +105,7 @@ def create_patient(last_name: str, first_name: str, dob: str, db: Session = Depe
 #Search Patients by Name
 @app.get("/patients/search")
 def search_patients(last_name: str, db: Session = Depends(get_db)):
-    matches = db.query(Patient).filter(Patient.name.ilike(f"%{last_name}%")).all()
+    matches = db.query(Patient).filter(Patient.last_name.ilike(f"%{last_name}%")).all()
     if not matches:
         raise HTTPException(status_code=404, detail="No patients found")
 
@@ -127,6 +127,17 @@ def get_patient(patient_id: int, db: Session = Depends(get_db)):
 
     return json.loads(patient.fhir_json)
 
+# Remove Patient by ID
+@app.delete("/patients/{patient_id}")
+def delete_patient(patient_id: int, db: Session = Depends(get_db)):
+    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    db.delete(patient)
+    db.commit()
+
+    return {"message": "Patient deleted successfully"}
 
 #EPIC FHIR URL
 EPIC_FHIR_URL = "https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4/Patient"
