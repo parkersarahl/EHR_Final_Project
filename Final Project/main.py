@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from passlib.context import CryptContext
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
 import requests
 import json
@@ -54,7 +54,7 @@ def get_user(username: str):
 # Function to create access token
 def create_access_token(data: dict, expires_delta: timedelta):
     to_encode = data.copy()
-    expire = datetime.timezone.utc() + expires_delta
+    expire = datetime.now(timezone.utc) + expires_delta
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -86,22 +86,37 @@ async def read_users_me(token: str = Depends(oauth2_scheme)):
 
     return {"username": user["username"]}
 
-
 # Create Patient Endpoint
 @app.post("/patients/")
-def create_patient(name: str, dob: str, db: Session = Depends(get_db)):
+def create_patient(last_name: str, first_name: str, dob: str, db: Session = Depends(get_db)):
     fhir_data = {
         "resourceType": "Patient",
-        "name": [{"text": name}],
+        "name": [{"text": first_name + " " + last_name}],
         "birthDate": dob
     }
 
-    new_patient = Patient(name=name, dob=dob, fhir_json=json.dumps(fhir_data))
+    new_patient = Patient(last_name=last_name,first_name = first_name, dob=dob, fhir_json=json.dumps(fhir_data))
     db.add(new_patient)
     db.commit()
     db.refresh(new_patient)
 
-    return {"message": "Patient created successfully", "fhir_data": fhir_data}
+    return {"message": "Patient created successfully", "patient_id": new_patient.id, "fhir_data": fhir_data}
+
+#Search Patients by Name
+@app.get("/patients/search")
+def search_patients(last_name: str, db: Session = Depends(get_db)):
+    matches = db.query(Patient).filter(Patient.name.ilike(f"%{last_name}%")).all()
+    if not matches:
+        raise HTTPException(status_code=404, detail="No patients found")
+
+    return [
+        {
+            "id": patient.id,
+            "name": patient.last_name + ", " + patient.first_name,
+            "dob": patient.dob
+        }
+        for patient in matches
+    ]
 
 # Get Patient by ID
 @app.get("/patients/{patient_id}")
@@ -111,6 +126,7 @@ def get_patient(patient_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Patient not found")
 
     return json.loads(patient.fhir_json)
+
 
 #EPIC FHIR URL
 EPIC_FHIR_URL = "https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4/Patient"
