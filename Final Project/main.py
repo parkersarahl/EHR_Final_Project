@@ -8,20 +8,16 @@ import json
 from sqlalchemy.orm import Session 
 from database import SessionLocal, engine
 from models import Patient  
+from routers import patients
+from database import get_db
 
 app = FastAPI()
-
 
 # Create Tables
 Patient.metadata.create_all(bind=engine)
 
-# Dependency to get DB session
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+#Register the router
+app.include_router(patients.router)
 
 #Secret Key (change to environment variable in production)
 SECRET_KEY = 'your_secret_key'
@@ -86,59 +82,6 @@ async def read_users_me(token: str = Depends(oauth2_scheme)):
 
     return {"username": user["username"]}
 
-# Create Patient Endpoint
-@app.post("/patients/")
-def create_patient(last_name: str, first_name: str, dob: str, db: Session = Depends(get_db)):
-    fhir_data = {
-        "resourceType": "Patient",
-        "name": [{"text": first_name + " " + last_name}],
-        "birthDate": dob
-    }
-
-    new_patient = Patient(last_name=last_name,first_name = first_name, dob=dob, fhir_json=json.dumps(fhir_data))
-    db.add(new_patient)
-    db.commit()
-    db.refresh(new_patient)
-
-    return {"message": "Patient created successfully", "patient_id": new_patient.id, "fhir_data": fhir_data}
-
-#Search Patients by Name
-@app.get("/patients/search")
-def search_patients(last_name: str, db: Session = Depends(get_db)):
-    matches = db.query(Patient).filter(Patient.last_name.ilike(f"%{last_name}%")).all()
-    if not matches:
-        raise HTTPException(status_code=404, detail="No patients found")
-
-    return [
-        {
-            "id": patient.id,
-            "name": patient.last_name + ", " + patient.first_name,
-            "dob": patient.dob
-        }
-        for patient in matches
-    ]
-
-# Get Patient by ID
-@app.get("/patients/{patient_id}")
-def get_patient(patient_id: int, db: Session = Depends(get_db)):
-    patient = db.query(Patient).filter(Patient.id == patient_id).first()
-    if not patient:
-        raise HTTPException(status_code=404, detail="Patient not found")
-
-    return json.loads(patient.fhir_json)
-
-# Remove Patient by ID
-@app.delete("/patients/{patient_id}")
-def delete_patient(patient_id: int, db: Session = Depends(get_db)):
-    patient = db.query(Patient).filter(Patient.id == patient_id).first()
-    if not patient:
-        raise HTTPException(status_code=404, detail="Patient not found")
-
-    db.delete(patient)
-    db.commit()
-
-    return {"message": "Patient deleted successfully"}
-
 #EPIC FHIR URL
 EPIC_FHIR_URL = "https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4/Patient"
 
@@ -161,11 +104,3 @@ def fetch_epic_patient(patient_id: str, db: Session = Depends(get_db)):
 
     return {"message": "Patient fetched and stored", "fhir_data": fhir_data}
 
-# Get Stored Patient by ID
-@app.get("/patients/{patient_id}")
-def get_patient(patient_id: int, db: Session = Depends(get_db)):
-    patient = db.query(Patient).filter(Patient.id == patient_id).first()
-    if not patient:
-        raise HTTPException(status_code=404, detail="Patient not found")
-
-    return json.loads(patient.fhir_json)
