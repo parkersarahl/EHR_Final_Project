@@ -4,6 +4,7 @@ from database import get_db
 from models import Patient
 from pydantic import BaseModel
 import json
+from services.ehr.epic import EpicEHR
 
 router = APIRouter(prefix="/patients", tags=["patients"])
 
@@ -75,3 +76,19 @@ def delete_patient(patient_id: int, db: Session = Depends(get_db)):
 
     return {"message": "Patient deleted successfully"}
 
+@router.post("/ehr/{vendor}/{patient_id}")
+def fetch_patient_from_ehr(vendor: str, patient_id: str, db: Session = Depends(get_db)):
+    ehr_services = {
+        "epic": EpicEHR(),
+        # "cerner": CernerEHR()  ← you can plug more in later
+    }
+
+    service = ehr_services.get(vendor.lower())
+    if not service:
+        raise HTTPException(status_code=400, detail=f"EHR vendor '{vendor}' not supported")
+
+    patient = service.fetch_patient(patient_id, db)
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found or error fetching")
+
+    return {"message": f"Patient fetched from {vendor}", "id": patient.id}
