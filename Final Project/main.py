@@ -25,21 +25,3 @@ app.include_router(auth.router)
 # OAuth2 scheme
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-
-@app.get("/users/me")
-async def read_users_me(token: str = Depends(oauth2_scheme)):
-    payload = decode_access_token(token)
-    if not payload:
-        raise HTTPException(status_code=401, detail="Invalid authentication")
-
-    username: str = payload.get("sub")
-    if username is None:
-        raise HTTPException(status_code=401, detail="Invalid authentication")
-
-    user = getuser(username)
-    if user is None:
-        raise HTTPException(status_code=401, detail="User not found")
-
-    return {"username": user["username"]}
-
-
