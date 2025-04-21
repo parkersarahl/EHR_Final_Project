@@ -3,13 +3,11 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
-import requests
-import json
-from sqlalchemy.orm import Session 
-from database import SessionLocal, engine
+
+from database import  engine
 from models import Patient  
 from routers import patients
-from database import get_db
+
 
 app = FastAPI()
 
@@ -81,26 +79,4 @@ async def read_users_me(token: str = Depends(oauth2_scheme)):
         raise HTTPException(status_code=401, detail="User not found")
 
     return {"username": user["username"]}
-
-#EPIC FHIR URL
-EPIC_FHIR_URL = "https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4/Patient"
-
-# Fetch Patient from Epic and Store in Database
-@app.post("/fetch-epic-patient/{patient_id}")
-def fetch_epic_patient(patient_id: str, db: Session = Depends(get_db)):
-    response = requests.get(f"{EPIC_FHIR_URL}/{patient_id}")
-
-    if response.status_code != 200:
-        raise HTTPException(status_code=400, detail="Failed to fetch patient from Epic")
-
-    fhir_data = response.json()
-    name = fhir_data.get("name", [{}])[0].get("text", "Unknown")
-    birth_date = fhir_data.get("birthDate", "1900-01-01")
-
-    new_patient = Patient(name=name, dob=birth_date, fhir_json=json.dumps(fhir_data))
-    db.add(new_patient)
-    db.commit()
-    db.refresh(new_patient)
-
-    return {"message": "Patient fetched and stored", "fhir_data": fhir_data}
 
