@@ -92,3 +92,20 @@ class EpicEHR(EHRVendor):
         db.refresh(patient)
 
         return patient
+    
+    @staticmethod
+    def test_fetch_patient_list():
+        token = get_epic_token()
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/fhir+json"
+        }
+
+        response = requests.get(f"{EPIC_FHIR_URL}/Patient?_count=1", headers=headers)
+
+        if response.status_code != 200:
+            raise Exception(f"Failed to fetch patient list: {response.status_code}, {response.text}")
+        
+        data = response.json()
+        print("Patient List:", json.dumps(data, indent=2))
+        return data
