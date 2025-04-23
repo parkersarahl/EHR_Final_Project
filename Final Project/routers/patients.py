@@ -1,17 +1,17 @@
+import json, requests
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from database import get_db
 from models import Patient
 from pydantic import BaseModel
-import json
-from services.ehr.epic import EpicEHR
+from services.ehr.epic import EpicEHR, EPIC_FHIR_URL, get_epic_token
+
 
 router = APIRouter(prefix="/patients", tags=["patients"])
 
 # Pydantic model
 class PatientCreate(BaseModel):
-    last_name: str
-    first_name: str 
+    name: str
     dob: str
 
 # Create a new patient
@@ -19,13 +19,12 @@ class PatientCreate(BaseModel):
 def create_patient(patient: PatientCreate, db: Session = Depends(get_db)):
     fhir_data = {
         "resourceType": "Patient",
-        "name": [{"text": patient.first_name + " " + patient.last_name}],
+        "name": [{"text": patient.name}],
         "birthDate": patient.dob
     }
 
     new_patient = Patient(
-        last_name=patient.last_name,
-        first_name=patient.first_name,
+        name = patient.name,
         dob=patient.dob,
         fhir_json=json.dumps(fhir_data)
     )
@@ -76,19 +75,25 @@ def delete_patient(patient_id: int, db: Session = Depends(get_db)):
 
     return {"message": "Patient deleted successfully"}
 
-@router.post("/ehr/{vendor}/{patient_id}")
-def fetch_patient_from_ehr(vendor: str, patient_id: str, db: Session = Depends(get_db)):
-    ehr_services = {
-        "epic": EpicEHR(),
-        # "cerner": CernerEHR()  ← you can plug more in later
-    }
+from services.ehr.epic import get_epic_token
 
-    service = ehr_services.get(vendor.lower())
-    if not service:
-        raise HTTPException(status_code=400, detail=f"EHR vendor '{vendor}' not supported")
+@router.post("/fetch-epic-patient/{patient_id}")
+def fetch_epic_patient(patient_id: str, db: Session = Depends(get_db)):
+    access_token = get_epic_token()
 
-    patient = service.fetch_patient(patient_id, db)
-    if not patient:
-        raise HTTPException(status_code=404, detail="Patient not found or error fetching")
+    headers = {"Authorization": f"Bearer {access_token}"}
+    response = requests.get(f"{EPIC_FHIR_URL}/{patient_id}", headers=headers)
 
-    return {"message": f"Patient fetched from {vendor}", "id": patient.id}
+    if response.status_code != 200:
+        raise HTTPException(status_code=400, detail="Failed to fetch patient from Epic")
+
+    fhir_data = response.json()
+    name = fhir_data.get("name", [{}])[0].get("text", "Unknown")
+    birth_date = fhir_data.get("birthDate", "1900-01-01")
+
+    new_patient = Patient(name=name, dob=birth_date, fhir_json=json.dumps(fhir_data))
+    db.add(new_patient)
+    db.commit()
+    db.refresh(new_patient)
+
+    return {"message": "Patient fetched and stored", "fhir_data": fhir_data}

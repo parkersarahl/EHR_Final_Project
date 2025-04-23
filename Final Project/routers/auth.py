@@ -4,12 +4,12 @@ from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
 from utils.auth import verify_password, create_access_token, hash_password, ACCESS_TOKEN_EXPIRE_MINUTES 
 
-# This is your fake DB — replace later with real query
+#Test User for Epic EHR
 fake_users_db = {
-    "testuser": {
-        "username": "testuser",
-        "full_name": "Test User",
-        "hashed_password": hash_password("password"),  # You can pre-hash or move this out
+    "FHIRTWO": {
+        "username": "FHIRTWO",
+        "full_name": "FHIRTWO, USER",
+        "hashed_password": hash_password("EpicFhir11!"),  # You can pre-hash or move this out
         "disabled": False,
     }
 }
