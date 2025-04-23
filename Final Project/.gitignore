@@ -4,3 +4,6 @@
 
 #PyCache
 *.pyc
+
+#Keys
+*.pem
