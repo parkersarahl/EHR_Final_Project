@@ -90,6 +90,47 @@ class EpicEHR(EHRVendor):
 
         return patient
     
+    def find_patient_by_name(family_name: str, given_name: str = None, birthdate: str = None, access_token: str = None):
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Accept": "application/fhir+json",
+        }
+        
+        params = {"family": family_name}
+        if given_name:
+            params["given"] = given_name
+        if birthdate:
+            params["birthdate"] = birthdate
+
+        response = requests.get(f"{EPIC_FHIR_URL}/Patient", headers=headers, params=params)
+        
+        if response.status_code != 200:
+            raise Exception(f"Failed to search patient: {response.status_code}, {response.text}")
+
+        bundle = response.json()
+
+        patients = []
+
+        if "entry" in bundle:
+            for entry in bundle["entry"]:
+                resource = entry.get("resource", {})
+                if resource.get("resourceType") == "Patient":
+                    # Build a clean patient object
+                    patient_info = {
+                        "id": resource.get("id"),
+                        "name": resource["name"][0].get("text", "Unknown") if "name" in resource else "Unknown",
+                        "birthDate": resource.get("birthDate", "Unknown")
+                    }
+                    patients.append(patient_info)
+
+        if not patients:
+            print("No matching patients found.")
+        else:
+            for patient in patients:
+                print(f"Found Patient: {patient['name']} (ID: {patient['id']}, BirthDate: {patient['birthDate']})")
+
+        return patients
+
     @staticmethod
     def test_fetch_patient_list():
         token = get_epic_token()
@@ -99,7 +140,7 @@ class EpicEHR(EHRVendor):
         }
         params = {
             "family": "Lopez",
-            "_id": "erXuFYUfucBZaryVksYEcMg3"
+            "birthdate": "1987-09-12"
         }
         response = requests.get(f"{EPIC_FHIR_URL}/Patient", headers=headers, params=params)
        
@@ -108,5 +149,12 @@ class EpicEHR(EHRVendor):
             raise Exception(f"Failed to fetch patient list: {response.status_code}, {response.text}")
         
         data = response.json()
-        print("Patient List:", json.dumps(data, indent=2))
+        patient_entry = response.json()["entry"][0]["resource"]
+
+        print(f"Name: {patient_entry['name'][0]['text']}")
+        print(f"Gender: {patient_entry['gender']}")
+        print(f"DOB: {patient_entry['birthDate']}")
+        print(f"Email: {patient_entry['telecom'][3]['value']}")
+        print(f"Primary Address: {', '.join(patient_entry['address'][0]['line'])}, {patient_entry['address'][0]['city']}, {patient_entry['address'][0]['state']} {patient_entry['address'][0]['postalCode']}")
+
         return data
