@@ -8,7 +8,7 @@ from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from cryptography.x509 import load_pem_x509_certificate
 
 
-EPIC_FHIR_URL = "https://fhir.epic.com/interconnect-fhir-oauth"
+EPIC_FHIR_URL = "https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4"
 
 CLIENT_ID = "b3d4de6f-fff6-45cb-ad65-eff1c502c2c1"  
 EPIC_TOKEN_URL = "https://fhir.epic.com/interconnect-fhir-oauth/oauth2/token"
@@ -48,16 +48,13 @@ def get_epic_token():
     payload = {
         "grant_type": "client_credentials",
         "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-        "client_assertion": token
+        "client_assertion": token,
+        "scope": "system/Patient/*.read"  # Optional: specify scopes if needed
     }
       # Request access token
     response = requests.post(
         EPIC_TOKEN_URL,
-        data={
-            "grant_type": "client_credentials",
-            "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
-            "client_assertion": token
-        }
+        data=payload
     )
     if response.status_code != 200:
         raise Exception(f"Failed to get token: {response.status_code}, {response.text}")
@@ -100,8 +97,12 @@ class EpicEHR(EHRVendor):
             "Authorization": f"Bearer {token}",
             "Accept": "application/fhir+json"
         }
-
-        response = requests.get(f"{EPIC_FHIR_URL}/Patient?_count=1", headers=headers)
+        params = {
+            "family": "Lopez",
+            "_id": "erXuFYUfucBZaryVksYEcMg3"
+        }
+        response = requests.get(f"{EPIC_FHIR_URL}/Patient", headers=headers, params=params)
+       
 
         if response.status_code != 200:
             raise Exception(f"Failed to fetch patient list: {response.status_code}, {response.text}")
