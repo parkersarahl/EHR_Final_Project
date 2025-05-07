@@ -4,8 +4,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models import Patient
 from pydantic import BaseModel
-from services.ehr.epic import EpicEHR, EPIC_FHIR_URL, get_epic_token
-
+from services.ehr.epic import EpicEHR, EPIC_FHIR_URL
 
 router = APIRouter(prefix="/patients", tags=["patients"])
 
@@ -75,11 +74,9 @@ def delete_patient(patient_id: int, db: Session = Depends(get_db)):
 
     return {"message": "Patient deleted successfully"}
 
-from services.ehr.epic import get_epic_token
-
 @router.post("/fetch-epic-patient/{patient_id}")
 def fetch_epic_patient(patient_id: str, db: Session = Depends(get_db)):
-    access_token = get_epic_token()
+    access_token = EpicEHR.get_epic_token()
 
     headers = {"Authorization": f"Bearer {access_token}"}
     response = requests.get(f"{EPIC_FHIR_URL}/{patient_id}", headers=headers)
