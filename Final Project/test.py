@@ -1,6 +1,6 @@
-from services.ehr.epic import get_epic_token
+from services.ehr.epic import EpicEHR
 
-token = get_epic_token()
+token = EpicEHR.get_epic_token()
 #print("Access Token:", token)
 
 from services.ehr.epic import EpicEHR

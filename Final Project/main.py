@@ -10,7 +10,7 @@ from utils.auth import (
 
 from database import  engine
 from models import Patient  
-from routers import patients, auth
+from routers import patients, auth, epic
 
 
 app = FastAPI()
@@ -21,6 +21,7 @@ Patient.metadata.create_all(bind=engine)
 #Register the router
 app.include_router(patients.router)
 app.include_router(auth.router)
+app.include_router(epic.router)
 
 # OAuth2 scheme
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
