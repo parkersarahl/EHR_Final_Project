@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import SearchPatients from './PatientSearch';
+import PatientSearch from './PatientSearch';
 
 function App() {
   return (
@@ -13,7 +13,7 @@ function App() {
 
         <Routes>
           <Route path="/" element={<div className="text-lg">Welcome to the Patient App</div>} />
-          <Route path="/search-patients" element={<SearchPatients />} />
+          <Route path="/search-patients" element={<PatientSearch />} />
         </Routes>
       </div>
     </Router>
@@ -21,4 +21,3 @@ function App() {
 }
 
 export default App;
-// Compare this snippet from Final%20Project/frontend/src/SearchPatients.js:
