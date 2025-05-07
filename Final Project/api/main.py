@@ -1,5 +1,6 @@
 from getpass import getuser
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from utils.auth import (
     verify_password,
@@ -14,6 +15,18 @@ from routers import patients, auth, epic
 
 
 app = FastAPI()
+
+# Enable CORS for your frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # Adjust if deployed
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+#Include your router
+app.include_router(epic, prefix="/api")  # optional: prefix all routes
 
 # Create Tables
 Patient.metadata.create_all(bind=engine)
