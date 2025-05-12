@@ -9,4 +9,4 @@ from services.ehr.epic import EpicEHR
 
 patient_bundle = EpicEHR.find_patient_by_name(family_name="Lopez", birthdate="1987-09-12", access_token=token)
 
-#print("Patient Bundle:", patient_bundle)
+print("Patient Bundle:", patient_bundle)
