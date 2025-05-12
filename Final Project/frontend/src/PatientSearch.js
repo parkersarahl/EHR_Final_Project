@@ -16,7 +16,7 @@ const PatientSearch = () => {
       if (givenName) params.append('given_name', givenName);
       if (birthdate) params.append('birthdate', birthdate);
 
-      const response = await axios.get(`/api/epic/patients?${params.toString()}`);
+      const response = await axios.get(`./api/epic/patients?${params.toString()}`);
       setResults(response.data.results || []);
     } catch (err) {
       console.error(err);

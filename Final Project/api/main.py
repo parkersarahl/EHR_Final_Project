@@ -11,7 +11,8 @@ from utils.auth import (
 
 from database import  engine
 from models import Patient  
-from routers import patients, auth, epic
+from routers import patients, auth
+from routers.epic import router as epic_router
 
 
 app = FastAPI()
@@ -26,7 +27,7 @@ app.add_middleware(
 )
 
 #Include your router
-app.include_router(epic, prefix="/api")  # optional: prefix all routes
+#app.include_router(epic_router, prefix="/api")  # optional: prefix all routes
 
 # Create Tables
 Patient.metadata.create_all(bind=engine)
@@ -34,7 +35,7 @@ Patient.metadata.create_all(bind=engine)
 #Register the router
 app.include_router(patients.router)
 app.include_router(auth.router)
-app.include_router(epic.router)
+app.include_router(epic_router, prefix="/api")  # optional: prefix all routes
 
 # OAuth2 scheme
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
