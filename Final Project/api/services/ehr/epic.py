@@ -11,8 +11,8 @@ EPIC_FHIR_URL = "https://fhir.epic.com/interconnect-fhir-oauth/api/FHIR/R4"
 
 CLIENT_ID = "b3d4de6f-fff6-45cb-ad65-eff1c502c2c1"  
 EPIC_TOKEN_URL = "https://fhir.epic.com/interconnect-fhir-oauth/oauth2/token"
-PRIVATE_KEY_PATH = "keys/epic-on-fhir-private-key.pem"
-PUBLIC_CERT_PATH = "keys/epic-on-fhir-public-key-509.pem"
+PRIVATE_KEY_PATH = "./api/keys/epic-on-fhir-private-key.pem"
+PUBLIC_CERT_PATH = "./api/keys/epic-on-fhir-public-key-509.pem"
 
 class EpicEHR(EHRVendor):
     @staticmethod
