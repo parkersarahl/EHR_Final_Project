@@ -61,9 +61,11 @@ const PatientSearch = () => {
 
       <ul className="mt-6 space-y-2">
         {results.map((patient, index) => (
-          <li key={index} className="border p-2 rounded shadow">
-            <strong>{patient.name}</strong> (DOB: {patient.birthDate})
-          </li>
+          <li key={index} className="border p-2 rounded shadow hover:bg-gray-100 cursor-pointer">
+          <a href={`/patients/${patient.id}`} className="text-blue-600 hover:underline">
+            {patient.name}
+          </a> (DOB: {patient.birthDate})
+        </li>
         ))}
       </ul>
     </div>

@@ -26,9 +26,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-#Include your router
-#app.include_router(epic_router, prefix="/api")  # optional: prefix all routes
-
 # Create Tables
 Patient.metadata.create_all(bind=engine)
 

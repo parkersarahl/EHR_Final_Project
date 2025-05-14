@@ -29,3 +29,9 @@ def search_patients(
         return {"results": patients}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/epic/patients/{patient_id}/notes")
+def get_patient_notes(patient_id: str):
+    token = EpicEHR.get_epic_token()
+    notes = EpicEHR.get_clinical_notes(patient_id, token)
+    return {"notes": notes}

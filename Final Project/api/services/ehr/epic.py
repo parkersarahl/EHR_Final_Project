@@ -31,12 +31,14 @@ class EpicEHR(EHRVendor):
 
         # build the JWT
         endpoint = "https://fhir.epic.com/interconnect-fhir-oauth/oauth2/token"
+        now = datetime.now(tz=timezone.utc)
+        exp_time = int((now + timedelta(minutes=5)).timestamp())
         payload = {
             "iss": CLIENT_ID,
             "sub": CLIENT_ID,
             "aud": endpoint,
             "jti": str(uuid.uuid4()),
-            "exp": datetime.now(tz=timezone.utc) + timedelta(minutes=+1),
+            "exp": exp_time,
         }
         # Encode the JWT using RS384 algorithm
         token = jwt.encode(
@@ -50,7 +52,9 @@ class EpicEHR(EHRVendor):
             "grant_type": "client_credentials",
             "client_assertion_type": "urn:ietf:params:oauth:client-assertion-type:jwt-bearer",
             "client_assertion": token,
-            "scope": "system/Patient/*.read"  # Optional: specify scopes if needed
+            
+            "scope": "system/DocumentReference.rs system/Observation.rs system/Patient.rs"
+  # Optional: specify scopes if needed
         }
         # Request access token
         response = requests.post(
@@ -60,10 +64,21 @@ class EpicEHR(EHRVendor):
         if response.status_code != 200:
             raise Exception(f"Failed to get token: {response.status_code}, {response.text}")
 
+        token_response = response.json()
+        decoded_token = jwt.decode(token, options={"verify_signature": False})
+        print(decoded_token)
+
+        print("Full token response:", response.status_code, response.text)
+
+        if "scope" in token_response:
+            print("Granted scopes:", token_response["scope"])
+        else:
+         print("No scope information found in the token response.")
+
         return response.json()["access_token"]
     
     @staticmethod
-    def find_patient_by_name(family_name: str, given_name: str = None, birthdate: str = None, access_token: str = None):
+    def find_patient_by_name(family_name: str, given_name: str = None, birthdate: str = None, access_token: str = None, return_id_only: bool = False):
         headers = {
             "Authorization": f"Bearer {access_token}",
             "Accept": "application/fhir+json",
@@ -91,6 +106,9 @@ class EpicEHR(EHRVendor):
             for entry in bundle["entry"]:
                 resource = entry.get("resource", {})
                 if resource.get("resourceType") == "Patient":
+                    if return_id_only:
+                        # If only ID is needed, return it directly
+                        return resource.get("id")
                     # Build a clean patient object
                     patient_info = {
                         "id": resource.get("id"),
@@ -102,5 +120,5 @@ class EpicEHR(EHRVendor):
                     
 
         return patients
-
+    
     
