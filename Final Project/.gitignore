@@ -7,3 +7,6 @@
 
 #Keys
 *.pem
+
+#Environment variables
+.env
